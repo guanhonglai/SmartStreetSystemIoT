@@ -1,22 +1,22 @@
 // Define LED pins for the North traffic light set
-const int redNorth = 21;   // Red LED for the North traffic light
-const int yellowNorth = 19;  // Yellow LED for the North traffic light
-const int greenNorth = 18;   // Green LED for the North traffic light
+const int redNorth = 21;   
+const int yellowNorth = 19;  
+const int greenNorth = 18;   
 
 // Define LED pins for the South traffic light set
-const int redSouth = 17;   // Red LED for the South traffic light
-const int yellowSouth = 16;  // Yellow LED for the South traffic light
-const int greenSouth = 15;   // Green LED for the South traffic light
+const int redSouth = 17;  
+const int yellowSouth = 16;  
+const int greenSouth = 15;   
 
 // Define LED pins for the East traffic light set
-const int redEast = 14;   // Red LED for the East traffic light
-const int yellowEast = 12;  // Yellow LED for the East traffic light
-const int greenEast = 13;   // Green LED for the East traffic light
+const int redEast = 14;  
+const int yellowEast = 12; 
+const int greenEast = 13;  
 
 // Define LED pins for the West traffic light set
-const int redWest = 33;   // Red LED for the West traffic light
-const int yellowWest = 32;  // Yellow LED for the West traffic light
-const int greenWest = 25;   // Green LED for the West traffic light
+const int redWest = 33;   
+const int yellowWest = 32;  
+const int greenWest = 25;  
 
 void setup() {
   // Initialize the LED pins as outputs for North traffic light
@@ -47,7 +47,7 @@ void setup() {
 }
 
 void blinkGreenLight(int greenPin, int blinkCount, int blinkInterval) {
-  // Blink the green light a specified number of times
+  // Blink the green light 
   for (int i = 0; i < blinkCount; i++) {
     digitalWrite(greenPin, HIGH);  // Turn green light on
     delay(blinkInterval);          // Wait for the blink interval
@@ -77,23 +77,23 @@ void yellowPhase(int yellowPin, int redPin) {
 }
 
 void northTrafficLight() {
-  greenPhase(redNorth, greenNorth);  // North light green phase
-  yellowPhase(yellowNorth, redNorth); // North light yellow phase
+  greenPhase(redNorth, greenNorth); 
+  yellowPhase(yellowNorth, redNorth); 
 }
 
 void southTrafficLight() {
-  greenPhase(redSouth, greenSouth);  // South light green phase
-  yellowPhase(yellowSouth, redSouth); // South light yellow phase
+  greenPhase(redSouth, greenSouth);  
+  yellowPhase(yellowSouth, redSouth);
 }
 
 void eastTrafficLight() {
-  greenPhase(redEast, greenEast);  // East light green phase
-  yellowPhase(yellowEast, redEast); // East light yellow phase
+  greenPhase(redEast, greenEast);  
+  yellowPhase(yellowEast, redEast); 
 }
 
 void westTrafficLight() {
-  greenPhase(redWest, greenWest);  // West light green phase
-  yellowPhase(yellowWest, redWest); // West light yellow phase
+  greenPhase(redWest, greenWest); 
+  yellowPhase(yellowWest, redWest);
 }
 
 void loop() {
@@ -101,8 +101,8 @@ void loop() {
   delay(500);
   
   // Traffic light sequence: North -> South -> East -> West
-  northTrafficLight();   // North light sequence
-  southTrafficLight();   // South light sequence
-  eastTrafficLight();    // East light sequence
-  westTrafficLight();    // West light sequence
+  northTrafficLight();  
+  southTrafficLight();  
+  eastTrafficLight();  
+  westTrafficLight();  
 }
