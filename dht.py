@@ -1,7 +1,10 @@
+#Create a IOT Raspberry Code with Grove Base Hat with DHT Sensor and Air Quality Sensor to upload data to Google Firebase Realtime Database
+
 import time
 from datetime import datetime
 from seeed_dht import DHT
 from pyrebase import pyrebase
+from grove.grove_air_quality_sensor_v1_3 import GroveAirQualitySensor
 
 # Firebase configuration
 config = {
@@ -21,11 +24,15 @@ db = firebase.database()
 DHT_pin = 5
 sensor = DHT("11", DHT_pin)
 
+# Initialize Air Quality sensor
+AQS_pin = 0
+air_sensor = GroveAirQualitySensor(AQS_pin)
+
 # Update interval
 update_interval = 60  # in seconds
 last_update_time = time.time()
 
-print("Detecting temperature and humidity...")
+print("Detecting temperature, humidity, and air quality...")
 
 while True:
     try:
@@ -35,13 +42,16 @@ while True:
             # Read temperature and humidity
             humi, temp = sensor.read()
             
+            # Read air quality
+            air_quality = air_sensor.value
+            
             if humi is not None and temp is not None:
                 # Format temperature and humidity
                 t = "{0:.1f}".format(temp)
                 h = "{0:.1f}".format(humi)
                 
                 # Print to console
-                print(f"Temperature: {t}°C, Humidity: {h}%")
+                print(f"Temperature: {t}°C, Humidity: {h}%, Air Quality: {air_quality}")
                 
                 # Prepare data with timestamp
                 dt = datetime.today().strftime('%Y%m%d')
@@ -52,6 +62,7 @@ while True:
                 data = {
                     'temperature': t,
                     'humidity': h,
+                    'air_quality': air_quality,
                     'timestamp': datetime.now().isoformat()  # ISO format timestamp
                 }
                 
