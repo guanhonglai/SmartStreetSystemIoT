@@ -1,36 +1,42 @@
-// Define LED pins for NSWE traffics
-const int redNorth = 21;   
-const int yellowNorth = 19;  
-const int greenNorth = 18;   
+// Define LED pins for the North traffic light set
+const int redNorth = 15;   
+const int yellowNorth = 2;  
+const int greenNorth = 4;   
 
-const int redSouth = 17;  
-const int yellowSouth = 16;  
-const int greenSouth = 15;   
+// Define LED pins for the South traffic light set
+const int redSouth = 13;  
+const int yellowSouth = 12;  
+const int greenSouth = 14;   
 
-const int redEast = 14;  
-const int yellowEast = 12; 
-const int greenEast = 13;  
+// Define LED pins for the East traffic light set
+const int redEast = 25;
+const int yellowEast = 33; 
+const int greenEast = 32;  
 
-const int redWest = 33;   
-const int yellowWest = 32;  
-const int greenWest = 25;  
+// Define LED pins for the West traffic light set
+const int redWest = 18;   
+const int yellowWest = 19;  
+const int greenWest = 21;  
 
 void setup() {
   Serial.begin(115200);  // Start serial communication for debugging
   
-  // Initialize the LED pins as outputs for NSWE taffics
+  // Initialize the LED pins as outputs for North traffic light
   pinMode(redNorth, OUTPUT);
   pinMode(yellowNorth, OUTPUT);
   pinMode(greenNorth, OUTPUT);
 
+  // Initialize the LED pins as outputs for South traffic light
   pinMode(redSouth, OUTPUT);
   pinMode(yellowSouth, OUTPUT);
   pinMode(greenSouth, OUTPUT);
 
+  // Initialize the LED pins as outputs for East traffic light
   pinMode(redEast, OUTPUT);
   pinMode(yellowEast, OUTPUT);
   pinMode(greenEast, OUTPUT);
 
+  // Initialize the LED pins as outputs for West traffic light
   pinMode(redWest, OUTPUT);
   pinMode(yellowWest, OUTPUT);
   pinMode(greenWest, OUTPUT);
@@ -105,7 +111,7 @@ void westTrafficLight() {
 void loop() {
   Serial.println("Starting traffic light sequence.");
   
-  // Start with all red lights on for 5 seconds
+  // Start with all red lights on for 1 seconds
   delay(1000);
   
   // Traffic light sequence: North -> South -> East -> West
