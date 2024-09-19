@@ -1,0 +1,188 @@
+// Define LED pins for the North traffic light set
+const int redNorth = 15;   
+const int yellowNorth = 2;  
+const int greenNorth = 4;   
+
+// Define LED pins for the South traffic light set
+const int redSouth = 13;  
+const int yellowSouth = 12;  
+const int greenSouth = 14;   
+
+// Define LED pins for the East traffic light set
+const int redEast = 27;  
+const int yellowEast = 26;  
+const int greenEast = 25;   
+
+// Define pins for North ultrasonic sensor
+const int trigPinNorth = 18;  
+const int echoPinNorth = 19;  
+
+// Define pins for South ultrasonic sensor
+const int trigPinSouth = 21;  
+const int echoPinSouth = 22;  
+
+// Define pins for East ultrasonic sensor
+const int trigPinEast = 32;  
+const int echoPinEast = 35;  
+
+// Define time parameters
+const unsigned long fullGreenDuration = 30000; // 30 seconds
+const unsigned long noCarThreshold = 5000;     // 5 seconds without a car
+const unsigned long blinkStart = 5000;         // Start blinking 5 seconds before the green phase ends
+const long maxDistance = 100;                  // Maximum valid distance from ultrasonic sensors (in cm)
+
+void setup() {
+  Serial.begin(115200);  // Start serial communication for debugging
+  
+  // Initialize the LED pins as outputs for North traffic light
+  pinMode(redNorth, OUTPUT);
+  pinMode(yellowNorth, OUTPUT);
+  pinMode(greenNorth, OUTPUT);
+
+  // Initialize the LED pins as outputs for South traffic light
+  pinMode(redSouth, OUTPUT);
+  pinMode(yellowSouth, OUTPUT);
+  pinMode(greenSouth, OUTPUT);
+  
+  // Initialize the LED pins as outputs for East traffic light
+  pinMode(redEast, OUTPUT);
+  pinMode(yellowEast, OUTPUT);
+  pinMode(greenEast, OUTPUT);
+  
+  // Initialize ultrasonic sensor pins for North, South, and East
+  pinMode(trigPinNorth, OUTPUT);
+  pinMode(echoPinNorth, INPUT);
+  
+  pinMode(trigPinSouth, OUTPUT);
+  pinMode(echoPinSouth, INPUT);
+  
+  pinMode(trigPinEast, OUTPUT);
+  pinMode(echoPinEast, INPUT);
+  
+  // Start with all red lights on
+  digitalWrite(redNorth, HIGH);
+  digitalWrite(redSouth, HIGH);
+  digitalWrite(redEast, HIGH);
+  
+  Serial.println("All lights are RED.");
+}
+
+// Function to measure distance using ultrasonic sensor with a max distance cap
+long measureDistance(int trigPin, int echoPin, long maxDistance) {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  
+  long duration = pulseIn(echoPin, HIGH);
+  long distance = (duration / 2) / 29.1; // Calculate distance in cm
+  
+  // Cap the measured distance to maxDistance
+  if (distance > maxDistance) {
+    distance = maxDistance;
+  }
+  
+  return distance;
+}
+
+// Blink the green light a specified number of times with a delay interval
+void blinkGreenLight(int greenPin, int blinkCount, int blinkInterval) {
+  for (int i = 0; i < blinkCount; i++) {
+    digitalWrite(greenPin, HIGH);  // Turn green light on
+    delay(blinkInterval);          // Wait for the blink interval
+    digitalWrite(greenPin, LOW);   // Turn green light off
+    delay(blinkInterval);          // Wait for the blink interval
+  }
+}
+
+// Function for green phase with car detection
+void greenPhase(int redPin, int greenPin, int trigPin, int echoPin) {
+  unsigned long startTime = millis();
+  unsigned long duration = fullGreenDuration;
+  
+  unsigned long noCarStart = 0;
+  bool noCarDetected = false;
+  
+  digitalWrite(redPin, LOW);    // Turn off red
+  digitalWrite(greenPin, HIGH); // Turn on green
+  Serial.println("Green light ON.");
+  
+  while (millis() - startTime < duration) {
+    long distance = measureDistance(trigPin, echoPin, maxDistance);
+    
+    // Check for car presence
+    if (distance > 20) {  // No car detected (distance greater than 50 cm)
+      if (!noCarDetected) {
+        noCarDetected = true;
+        noCarStart = millis();  // Start counting since no car was detected
+      }
+      
+      // If no car has been detected for 5 seconds, reduce the green light duration
+      if (millis() - noCarStart >= noCarThreshold) {
+        duration = millis() - startTime + blinkStart;  // Adjust the duration to add blinking
+        Serial.println("No car detected for 5 seconds. Reducing green light duration.");
+        break;
+      }
+      
+    } else {
+      // If a car is detected, reset the no-car detection timer
+      noCarDetected = false;
+    }
+
+    // If we're within the final 5 seconds of the green phase, start blinking
+    if (millis() - startTime >= duration - blinkStart) {
+      break;
+    }
+
+    delay(100);  // Short delay to reduce sensor polling rate
+  }
+
+  // Blink the green light for the last 5 seconds before turning it off
+  blinkGreenLight(greenPin, 5, 500);  // Blink 5 times with a 0.5-second interval
+  
+  digitalWrite(greenPin, LOW);  // Turn off green light
+  Serial.println("Green light OFF.");
+}
+
+// Function for yellow phase
+void yellowPhase(int yellowPin, int redPin) {
+  digitalWrite(yellowPin, HIGH); // Turn on yellow
+  Serial.println("Yellow light ON.");
+  delay(2000);                    // Yellow light for 2 seconds
+  digitalWrite(yellowPin, LOW);  // Turn off yellow
+  digitalWrite(redPin, HIGH);    // Turn red back on
+}
+
+// North traffic light sequence
+void northTrafficLight() {
+  Serial.println("North light sequence starting.");
+  greenPhase(redNorth, greenNorth, trigPinNorth, echoPinNorth); 
+  yellowPhase(yellowNorth, redNorth); 
+  Serial.println("North light sequence finished.");
+}
+
+// South traffic light sequence
+void southTrafficLight() {
+  Serial.println("South light sequence starting.");
+  greenPhase(redSouth, greenSouth, trigPinSouth, echoPinSouth);  
+  yellowPhase(yellowSouth, redSouth);
+  Serial.println("South light sequence finished.");
+}
+
+// East traffic light sequence
+void eastTrafficLight() {
+  Serial.println("East light sequence starting.");
+  greenPhase(redEast, greenEast, trigPinEast, echoPinEast);  
+  yellowPhase(yellowEast, redEast);
+  Serial.println("East light sequence finished.");
+}
+
+void loop() {
+  Serial.println("Starting traffic light sequence.");
+  
+  // Traffic light sequence: North -> South -> East
+  northTrafficLight();  
+  southTrafficLight();
+  eastTrafficLight();
+}
