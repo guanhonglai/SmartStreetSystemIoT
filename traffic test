@@ -29,6 +29,8 @@ int distance;
 // Minimum distance to detect a car (in cm)
 const int maxDistance = 50;  // Maximum distance to shorten the green light
 const unsigned long carDetectionTime = 5000;  // 5 seconds for detection to trigger shortening
+const unsigned long defaultGreenDuration = 25000;  // Default 25 seconds green light duration
+const unsigned long shortenedGreenDuration = 5000;  // Shortened 5 seconds green light duration
 
 void setup() {
   Serial.begin(115200);  // Start serial communication for debugging
@@ -90,98 +92,41 @@ void blinkGreenLight(int greenPin, int blinkCount, int blinkInterval) {
   }
 }
 
-void greenPhase(int redPin, int greenPin, unsigned long greenDuration) {
+void trafficLightSequence(int redPin, int yellowPin, int greenPin, bool isNorth) {
+  Serial.println("Traffic light sequence starting.");
+  
+  unsigned long greenDuration = defaultGreenDuration;
+  
+  if (isNorth) {
+    int currentDistance = getDistance();
+    Serial.print("North lane distance: ");
+    Serial.println(currentDistance);
+    
+    if (currentDistance > maxDistance) {
+      greenDuration = shortenedGreenDuration;
+      Serial.println("No car detected, green light duration shortened.");
+    }
+  }
+  
+  // Green phase
   delay(1000);  // 1-second delay before green light turns on
   digitalWrite(redPin, LOW);    // Turn off red
   digitalWrite(greenPin, HIGH); // Turn on green
   Serial.println("Green light ON.");
-
-  // Set the green light to last for the specified duration
   delay(greenDuration);
   
   // Blink the green light
   blinkGreenLight(greenPin, 5, 500);  // Blink green light 5 times with a 0.5 second interval
   digitalWrite(greenPin, LOW);        // Ensure green is off after blinking
-}
 
-void yellowPhase(int yellowPin, int redPin) {
+  // Yellow phase
   digitalWrite(yellowPin, HIGH); // Turn on yellow
   Serial.println("Yellow light ON.");
-  delay(2000);                    // Yellow light for 2 seconds
+  delay(2000);                   // Yellow light for 2 seconds
   digitalWrite(yellowPin, LOW);  // Turn off yellow
   digitalWrite(redPin, HIGH);    // Turn red back on
-}
-
-void northTrafficLight() {
-  Serial.println("North light sequence starting.");
   
-  unsigned long greenDuration = 25000;  // Default 25 seconds green light duration
-  unsigned long startMillis = millis();  // Start time for the green phase
-  
-  bool greenShortened = false;  // Flag to indicate if green was shortened
-  unsigned long detectStartMillis = millis();  // Time when distance exceeds threshold
-  
-  // Turn on the green light
-  digitalWrite(redNorth, LOW);    // Turn off red
-  digitalWrite(greenNorth, HIGH); // Turn on green
-  Serial.println("Green light ON (North).");
-
-  while (millis() - startMillis < greenDuration) {
-    int currentDistance = getDistance();
-    Serial.print("North lane distance: ");
-    Serial.println(currentDistance);
-
-    // Check if distance exceeds 50 cm
-    if (currentDistance > maxDistance) {
-      if (!greenShortened) {
-        // Update detectStartMillis if the distance exceeds threshold
-        detectStartMillis = millis();
-      }
-    } else {
-      // Reset detectStartMillis if distance is within the threshold
-      detectStartMillis = millis();
-    }
-    
-    // Check if distance exceeds 50 cm for 5 seconds
-    if (millis() - detectStartMillis >= carDetectionTime) {
-      if (!greenShortened) {
-        greenDuration = millis() - startMillis + 5000;  // Shorten green to 5 seconds
-        greenShortened = true;
-        Serial.println("Distance exceeds 50 cm for 5 seconds, green light shortened.");
-      }
-    }
-
-    delay(1000);  // Check every 500ms
-  }
-  
-  // Blink the green light before switching to yellow
-  blinkGreenLight(greenNorth, 5, 500);  // Blink green light 5 times with a 0.5 second interval
-  digitalWrite(greenNorth, LOW);        // Ensure green is off after blinking
-
-  // Proceed with yellow phase
-  yellowPhase(yellowNorth, redNorth); 
-  Serial.println("North light sequence finished.");
-}
-
-void southTrafficLight() {
-  Serial.println("South light sequence starting.");
-  greenPhase(redSouth, greenSouth, 25000);  // Fixed 25-second duration
-  yellowPhase(yellowSouth, redSouth);
-  Serial.println("South light sequence finished.");
-}
-
-void eastTrafficLight() {
-  Serial.println("East light sequence starting.");
-  greenPhase(redEast, greenEast, 25000);  // Fixed 25-second duration
-  yellowPhase(yellowEast, redEast); 
-  Serial.println("East light sequence finished.");
-}
-
-void westTrafficLight() {
-  Serial.println("West light sequence starting.");
-  greenPhase(redWest, greenWest, 25000);  // Fixed 25-second duration
-  yellowPhase(yellowWest, redWest);
-  Serial.println("West light sequence finished.");
+  Serial.println("Traffic light sequence finished.");
 }
 
 void loop() {
@@ -191,8 +136,8 @@ void loop() {
   delay(1000);
   
   // Traffic light sequence: North -> South -> East -> West
-  northTrafficLight();  
-  southTrafficLight();  
-  eastTrafficLight();  
-  westTrafficLight();  
+  trafficLightSequence(redNorth, yellowNorth, greenNorth, true);  // North with ultrasonic detection
+  trafficLightSequence(redSouth, yellowSouth, greenSouth, false);
+  trafficLightSequence(redEast, yellowEast, greenEast, false);
+  trafficLightSequence(redWest, yellowWest, greenWest, false);
 }
