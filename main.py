@@ -161,14 +161,16 @@ def main():
                     last_update_time = current_time
                 else:
                     print("DHT sensor reading failed.")
+                    
+            weather = db.child("Current").child("weather").get().val()
             
             # Slightly longer sleep time to slow down loop speed without too much delay
-            if not rock and not tree:
-                setText("No Obstacles Detected")
+            if rock or tree:
+                setText("Obstacles Detected, DANGER!!!")
             elif air_quality > 100:
-                setText("Poor Air Quality (" + str(air_quality) + ")"
+                setText("Poor Air Quality (" + str(air_quality) +  " AQI)")
             else:
-                setText("Obstacles Detected, Clearing...")
+                setText("Temp:" + str(temp) + " Weather:" + weather)
             time.sleep(update_interval)
             
             
