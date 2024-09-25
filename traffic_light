@@ -14,282 +14,271 @@ FirebaseConfig config;
 
 unsigned long sendDataPrevMillis = 0;
 unsigned long sendDataPrevMillis2 = 0;
-int north,east,west = 0;
+int south, west, east = 0;
 bool signupOK = false;
 
-// Define LED pins for the North traffic light set
-const int redNorth = 27;   
-const int yellowNorth = 26;  
-const int greenNorth = 25;   
-
-// Define LED pins for the East traffic light set
-const int redEast = 13;  
-const int yellowEast = 12;  
-const int greenEast = 14;   
+// Define LED pins for the South traffic light set
+const int redSouth = 15;
+const int yellowSouth = 2;
+const int greenSouth = 4;
 
 // Define LED pins for the West traffic light set
-const int redWest = 15;  
-const int yellowWest = 2;  
-const int greenWest = 4;   
+const int redWest = 13;
+const int yellowWest = 12;
+const int greenWest = 14;
 
-// Define pins for North ultrasonic sensor
-const int trigPinNorth = 18;  
-const int echoPinNorth = 19;  
+// Define LED pins for the East traffic light set
+const int redEast = 5;
+const int yellowEast = 26;
+const int greenEast = 25;
 
-// Define pins for East ultrasonic sensor
-const int trigPinEast = 32;  
-const int echoPinEast = 35;  
+// Define pins for South ultrasonic sensor
+const int trigPinSouth = 18;
+const int echoPinSouth = 19;
 
 // Define pins for West ultrasonic sensor
-const int trigPinWest = 21;  
-const int echoPinWest = 22;  
+const int trigPinWest = 32;
+const int echoPinWest = 35;
 
-// Define time parameters
-const unsigned long fullGreenDuration = 30000; // 30 seconds
-const unsigned long noCarThreshold = 5000;     // 5 seconds without a car
-const unsigned long blinkStart = 5000;         // Start blinking 5 seconds before the green phase ends
-const long maxDistance = 50;                  // Maximum valid distance from ultrasonic sensors (in cm)
+// Define pins for East ultrasonic sensor
+const int trigPinEast = 21;
+const int echoPinEast = 22;
 
-void setup_wifi(){
+const unsigned long fullGreenDuration = 30000;
+const unsigned long noCarThreshold = 5000;
+const unsigned long blinkStart = 5000;
+const long maxDistance = 10;
+
+void setup_wifi() {
   delay(10);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  while(WiFi.status() != WL_CONNECTED){
+  while (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi reconnecting...");
     delay(500);
   }
   Serial.println("WiFi connected.");
 }
 
-void initializeFirebase(){
+void initializeFirebase() {
   config.api_key = API_KEY;
   config.database_url = DATABASE_URL;
-  
-  if(Firebase.signUp(&config, &auth, "", "")){
+
+  if (Firebase.signUp(&config, &auth, "", "")) {
     Serial.println("ok");
     signupOK = true;
-  }
-  else{
+  } else {
     Serial.printf("%s\n", config.signer.signupError.message.c_str());
   }
-  
+
   config.token_status_callback = tokenStatusCallback;
-  
+
   Firebase.begin(&config, &auth);
   Firebase.reconnectWiFi(true);
 }
 
 void setup() {
-  Serial.begin(115200);  // Start serial communication for debugging
-  
+  Serial.begin(115200);
   setup_wifi();
   initializeFirebase();
 
-  // Initialize the LED pins as outputs for North traffic light
-  pinMode(redNorth, OUTPUT);
-  pinMode(yellowNorth, OUTPUT);
-  pinMode(greenNorth, OUTPUT);
+  // Initialize the LED pins as outputs for South traffic light
+  pinMode(redSouth, OUTPUT);
+  pinMode(yellowSouth, OUTPUT);
+  pinMode(greenSouth, OUTPUT);
+
+  // Initialize the LED pins as outputs for West traffic light
+  pinMode(redWest, OUTPUT);
+  pinMode(yellowWest, OUTPUT);
+  pinMode(greenWest, OUTPUT);
 
   // Initialize the LED pins as outputs for East traffic light
   pinMode(redEast, OUTPUT);
   pinMode(yellowEast, OUTPUT);
   pinMode(greenEast, OUTPUT);
-  
-  // Initialize the LED pins as outputs for West traffic light
-  pinMode(redWest, OUTPUT);
-  pinMode(yellowWest, OUTPUT);
-  pinMode(greenWest, OUTPUT);
-  
-  // Initialize ultrasonic sensor pins for North, East, and West
-  pinMode(trigPinNorth, OUTPUT);
-  pinMode(echoPinNorth, INPUT);
-  
-  pinMode(trigPinEast, OUTPUT);
-  pinMode(echoPinEast, INPUT);
-  
+
+  // Initialize ultrasonic sensor pins for South, West, and East
+  pinMode(trigPinSouth, OUTPUT);
+  pinMode(echoPinSouth, INPUT);
+
   pinMode(trigPinWest, OUTPUT);
   pinMode(echoPinWest, INPUT);
-  
-  // Start with all red lights on
-  digitalWrite(redNorth, HIGH);
-  digitalWrite(redEast, HIGH);
+
+  pinMode(trigPinEast, OUTPUT);
+  pinMode(echoPinEast, INPUT);
+
+  digitalWrite(redSouth, HIGH);
   digitalWrite(redWest, HIGH);
-  
+  digitalWrite(redEast, HIGH);
+
   Serial.println("All lights are RED.");
 }
 
-// Function to measure distance using ultrasonic sensor with a max distance cap
 long measureDistance(int trigPin, int echoPin, long maxDistance) {
   digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
   digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
-  
+
   long duration = pulseIn(echoPin, HIGH);
-  long distance = (duration / 2) / 29.1; // Calculate distance in cm
-  
-  // Cap the measured distance to maxDistance
+  long distance = (duration / 2) / 29.1;
+
   if (distance > maxDistance) {
     distance = maxDistance;
   }
-  
+
   return distance;
 }
 
-// Blink the green light a specified number of times with a delay interval
 void blinkGreenLight(int greenPin, int blinkCount, int blinkInterval) {
   for (int i = 0; i < blinkCount; i++) {
-    digitalWrite(greenPin, HIGH);  // Turn green light on
-    delay(blinkInterval);          // Wait for the blink interval
-    digitalWrite(greenPin, LOW);   // Turn green light off
-    delay(blinkInterval);          // Wait for the blink interval
+    digitalWrite(greenPin, HIGH);
+    delay(blinkInterval);
+    digitalWrite(greenPin, LOW);
+    delay(blinkInterval);
   }
 }
 
-// Function for green phase with car detection
 void greenPhase(int redPin, int greenPin, int trigPin, int echoPin) {
   unsigned long startTime = millis();
   unsigned long duration = fullGreenDuration;
-  
+
   unsigned long noCarStart = 0;
   bool noCarDetected = false;
-  
-  digitalWrite(redPin, LOW);    // Turn off red
-  digitalWrite(greenPin, HIGH); // Turn on green
+
+  digitalWrite(redPin, LOW);
+  digitalWrite(greenPin, HIGH);
   Serial.println("Green light ON.");
+
   String direction = "";
-  if(trigPin == 18){
-    direction = "north";
-  }
-  else if(trigPin == 32){
+  if (trigPin == trigPinSouth) {
+    direction = "south";
+  } else if (trigPin == trigPinWest) {
+    direction = "west";
+  } else if (trigPin == trigPinEast) {
     direction = "east";
   }
-  else if(trigPin == 21){
-    direction ="west";
-  }
-  
+
   while (millis() - startTime < duration) {
     long distance = measureDistance(trigPin, echoPin, maxDistance);
-    
-    // Check for car presence
-    if (distance > 3) {  // No car detected (distance greater than 50 cm)
+
+    if (distance > 3) {
       if (!noCarDetected) {
         noCarDetected = true;
-        noCarStart = millis();  // Start counting since no car was detected
+        noCarStart = millis();
       }
-      
-      // If no car has been detected for 5 seconds, reduce the green light duration
+
       if (millis() - noCarStart >= noCarThreshold) {
-        duration = millis() - startTime + blinkStart;  // Adjust the duration to add blinking
-        Serial.println("No car detected for 5 seconds. Reducing green light duration.");
+        duration = millis() - startTime + blinkStart;
+        Serial.println(
+            "No car detected for 5 seconds. Reducing green light duration.");
         break;
       }
-      
+
     } else {
-      // If a car is detected, reset the no-car detection timer
       noCarDetected = false;
-      int carCount = 0;
-      carCount = getCarCount(direction);
+      int carCount = getCarCount(direction);
       carCount++;
       setCarCount(direction, carCount);
-
     }
 
-    // If we're within the final 5 seconds of the green phase, start blinking
     if (millis() - startTime >= duration - blinkStart) {
       break;
     }
 
-    delay(1500);  // Short delay to reduce sensor polling rate
+    delay(1500);
   }
 
-  // Blink the green light for the last 5 seconds before turning it off
-  blinkGreenLight(greenPin, 5, 500);  // Blink 5 times with a 0.5-second interval
-  
-  digitalWrite(greenPin, LOW);  // Turn off green light
+  blinkGreenLight(greenPin, 5, 500);
+  digitalWrite(greenPin, LOW);
   Serial.println("Green light OFF.");
 }
 
-// Function for yellow phase
 void yellowPhase(int yellowPin, int redPin) {
-  digitalWrite(yellowPin, HIGH); // Turn on yellow
+  digitalWrite(yellowPin, HIGH);
   Serial.println("Yellow light ON.");
-  delay(2000);                    // Yellow light for 2 seconds
-  digitalWrite(yellowPin, LOW);  // Turn off yellow
-  digitalWrite(redPin, HIGH);    // Turn red back on
+  delay(2000);
+  digitalWrite(yellowPin, LOW);
+  digitalWrite(redPin, HIGH);
 }
 
-// North traffic light sequence
-void northTrafficLight() {
-  Serial.println("North light sequence starting.");
-  greenPhase(redNorth, greenNorth, trigPinNorth, echoPinNorth); 
-  yellowPhase(yellowNorth, redNorth); 
-  Serial.println("North light sequence finished.");
+void southTrafficLight() {
+  Serial.println("South light sequence starting.");
+  greenPhase(redSouth, greenSouth, trigPinSouth, echoPinSouth);
+  yellowPhase(yellowSouth, redSouth);
+  Serial.println("South light sequence finished.");
 }
 
-// East traffic light sequence
-void eastTrafficLight() {
-  Serial.println("East light sequence starting.");
-  greenPhase(redEast, greenEast, trigPinEast, echoPinEast);  
-  yellowPhase(yellowEast, redEast);
-  Serial.println("East light sequence finished.");
-}
-
-// West traffic light sequence
 void westTrafficLight() {
   Serial.println("West light sequence starting.");
-  greenPhase(redWest, greenWest, trigPinWest, echoPinWest);  
+  greenPhase(redWest, greenWest, trigPinWest, echoPinWest);
   yellowPhase(yellowWest, redWest);
   Serial.println("West light sequence finished.");
 }
 
-int getCarCount(String direction){
-  if(Firebase.ready() && signupOK && (millis() - sendDataPrevMillis > 1000 || sendDataPrevMillis == 0)){
+void eastTrafficLight() {
+  Serial.println("East light sequence starting.");
+  greenPhase(redEast, greenEast, trigPinEast, echoPinEast);
+  yellowPhase(yellowEast, redEast);
+  Serial.println("East light sequence finished.");
+}
+
+int getCarCount(String direction) {
+  if (Firebase.ready() && signupOK &&
+      (millis() - sendDataPrevMillis > 1500 || sendDataPrevMillis == 0)) {
     sendDataPrevMillis = millis();
     String fullPath = "/car_count/" + direction;
-    if(Firebase.RTDB.getInt(&fbdo, fullPath)){
+    if (Firebase.RTDB.getInt(&fbdo, fullPath)) {
       int car_count = fbdo.intData();
       Serial.println("Car Count: ");
       Serial.println(car_count);
 
       return car_count;
-    }
-    else{
+    } else {
       Serial.println("Failed");
       Serial.println("Reason:" + fbdo.errorReason());
     }
-  }
-  else{
+  } else {
     Serial.println("Firebase failed");
   }
 
   return -1;
 }
 
-void setCarCount(String direction, int carCount){
-  if(Firebase.ready() && signupOK && (millis() - sendDataPrevMillis2 > 1000 || sendDataPrevMillis2 == 0)){
+void setCarCount(String direction, int carCount) {
+  if (Firebase.ready() && signupOK &&
+      (millis() - sendDataPrevMillis2 > 1500 || sendDataPrevMillis2 == 0)) {
     sendDataPrevMillis2 = millis();
+
+    // Update the car count for the specific direction
     String fullPath = "/car_count/" + direction;
-    if(Firebase.RTDB.setInt(&fbdo, fullPath, carCount)){
-      Serial.println("Car Count updated for " + direction + " " + carCount);
+    if (Firebase.RTDB.setInt(&fbdo, fullPath, carCount)) {
+      Serial.println("Car Count updated for " + direction + ": " + carCount);
+
+      // After updating the car count, update the common timestamp
+      String timestampPath = "/car_count/timestamp";
+      if (Firebase.RTDB.setInt(&fbdo, timestampPath, Firebase.FST)) {
+        Serial.println("Timestamp updated.");
+      } else {
+        Serial.println("Failed to update timestamp");
+        Serial.println("Reason: " + fbdo.errorReason());
+      }
+    } else {
+      Serial.println("Failed to update car count");
+      Serial.println("Reason: " + fbdo.errorReason());
     }
-    else{
-      Serial.println("Failed");
-      Serial.println("Reason:" + fbdo.errorReason());
-    }
-  }
-  else{
-    Serial.println("Firebase failed");
+  } else {
+    Serial.println("Firebase connection failed");
   }
 }
 
 void loop() {
   Serial.println("Starting traffic light sequence.");
-  // Traffic light sequence: North -> East -> West
-  northTrafficLight();  
-  delay(1500);
-  eastTrafficLight();
+  // Traffic light sequence: South -> West -> East
+  southTrafficLight();
   delay(1500);
   westTrafficLight();
+  delay(1500);
+  eastTrafficLight();
   delay(1500);
 }
