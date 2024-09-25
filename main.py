@@ -53,8 +53,10 @@ def main():
     # Initialize sensors and LEDs
     light_sensor = GroveLightSensor(2)  # Light sensor connected to A2
     water_sensor = GroveWaterSensor(4)  # Water sensor connected to A4
-    led1 = GPIO(20, GPIO.OUT)  # First LED connected to D5 (GPIO 5)
-    led2 = GPIO(21, GPIO.OUT)  # Second LED connected to D6 (GPIO 6)
+    led1 = GPIO(20, GPIO.OUT)
+    led2 = GPIO(21, GPIO.OUT)
+    led3 = GPIO(26, GPIO.OUT)
+    led4 = GPIO(19, GPIO.OUT)
     relay_pin = 22
     relay = GroveLed(relay_pin)
 
@@ -100,6 +102,8 @@ def main():
                 relay.write(0)  # Turn off street light
                 led1.write(0)  # Turn off LED 1
                 led2.write(0)  # Turn off LED 2
+                led3.write(0)
+                led4.write(0)
             else:
                 print("Automatic mode activated.")
 
@@ -110,17 +114,23 @@ def main():
                 if light_value >= LIGHT_THRESHOLD and water_value > WATER_THRESHOLD:
                     print('It\'s daytime and raining. Turning ON street light for safety.')
                     led1.write(1)  # Turn on LED 1
-                    led2.write(0)  # Turn off LED 2
+                    led2.write(0)
+                    led3.write(1)
+                    led4.write(0)
                     relay.write(0)  # Turn off street light
                 elif light_value < LIGHT_THRESHOLD:
                     print('It\'s night time. Turning ON the street lights.')
                     led1.write(1)  # Turn on LED 1
-                    led2.write(1)  # Turn on LED 2
+                    led2.write(1)
+                    led3.write(1)
+                    led4.write(1)
                     relay.write(1)  # Turn on street light
                 elif light_value >= LIGHT_THRESHOLD and water_value <= WATER_THRESHOLD:
                     print('It\'s a clear, bright day. All lights are OFF to save energy.')
                     led1.write(0)  # Turn off LED 1
                     led2.write(0)  # Turn off LED 2
+                    led3.write(0)
+                    led4.write(0)
                     relay.write(0)  # Turn off street light
 
             if current_time - last_update_time >= update_interval:
